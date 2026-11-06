@@ -1,0 +1,5 @@
+operation,sku,quantity,before,after,status,source_text
+decrease,P001,2,10,8,success,2 tane perakende satış oldu
+increase,P001,1,8,9,success,1 tane iade geldi
+increase,P002,3,5,8,success,mouse ürününden 3 adet yeni ürün geldi
+set,P003,6,0,6,success,monitör stoğunu 6 yap

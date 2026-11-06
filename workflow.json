@@ -1,0 +1,390 @@
+{
+  "name": "Mini ERP - Telegram Stok Asistanı",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.5,
+      "position": [
+        0,
+        0
+      ],
+      "id": "320fcec6-3f02-40d2-af7d-4090ffd2c5cd",
+      "name": "Telegram Trigger",
+      "webhookId": "5298d8a4-07c4-4f3e-94ac-0b2520fc8766",
+      "credentials": {
+        "telegramApi": {
+          "id": "PdHZiz6WocFge4yT",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').first().json.message.chat.id }}",
+        "text": "={{ JSON.parse($json.output).reply }}",
+        "replyMarkup": "=none",
+        "forceReply": {},
+        "replyKeyboardOptions": {},
+        "replyKeyboardRemove": {},
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1648,
+        160
+      ],
+      "id": "44ce72c7-bc43-4cd1-95d8-ce3bce3c39b4",
+      "name": "Send a text message",
+      "webhookId": "8b2995c1-27d3-4217-94b6-2f1bbaecd3e7",
+      "credentials": {
+        "telegramApi": {
+          "id": "PdHZiz6WocFge4yT",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url":"https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth",
+        "options": {
+          "redirect": {
+            "redirect": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        480,
+        0
+      ],
+      "id": "339e5d29-fcd5-4420-a516-3f5214069a76",
+      "name": "HTTP Request",
+      "credentials": {
+        "httpQueryAuth": {
+          "id": "qJk5XSIVlGYgotNv",
+          "name": "Query Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ 'Kullanıcı mesajı: ' + $('Telegram Trigger').first().json.message.text + '\\nGüncel ürünler: ' + JSON.stringify($json.products) }}",
+        "options": {
+          "systemMessage": "Sen türkçe konuşan bir stok yönetimi asistanısın.Kullanıcının mesajındaki işlem türünü, ürünü ve miktarı belirle.\n\nİşlem türleri:\nquery = stok sorgulama\ndecrease = satış\nincrease = iade veya yeni stok\nset = stoğu belirli değere ayarlama\nclarify = belirsiz istek\n\nÖnceki konuşmayı kullanarak \"2 tane sattım\", \"şu an kaç kaldı\" gibi ifadelerde hangi üründen söz edildiğini belirle.\n\nÜrünler yalnızca verilen ürün listesinden seçilebilir. Ürün veya miktar uydurma. Miktar eksikse veya ürün belirsizse clarify kullan.\n\nSadece geçerli JSON döndür; Markdown veya açıklama ekleme.\n\nJSON biçimi:\n{\"operation\":\"query|decrease|increase|set|clarify\",\"sku\":\"P001 veya null\",\"quantity\":null,\"reply\":\"Kısa Türkçe açıklama\"}\n\nStokları kendin değiştirdiğini iddia etme. Stok değişikliği ve yeterli stok kontrolü ayrı bir işlem tarafından yapılacaktır"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        928,
+        0
+      ],
+      "id": "dca3a8a1-39b4-4541-8725-61e68c88e795",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.5-flash",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.2,
+      "position": [
+        848,
+        240
+      ],
+      "id": "3d44a415-90cd-45dd-8394-b5dd2f2c37a3",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "gAgitNs8JxI8JXpR",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "destinationFieldName": "products",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        704,
+        0
+      ],
+      "id": "6b0b0dae-803d-4c83-af5a-1419059f4b9c",
+      "name": "Aggregate"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Telegram Trigger').first().json.message.chat.id.toString() }}",
+        "contextWindowLength": 10
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.4,
+      "position": [
+        1024,
+        224
+      ],
+      "id": "fe6cbb22-5751-4b24-b434-3cd326b4dca2",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 4
+          },
+          "conditions": [
+            {
+              "id": "657dba8a-e0b4-456f-994d-b00c7e9eaa29",
+              "leftValue": "={{ ['decrease', 'increase', 'set'].includes(JSON.parse($json.output).operation) }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.4,
+      "position": [
+        1408,
+        0
+      ],
+      "id": "76b5b509-10a0-45b1-9997-a6a54c7b3202",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "=\n{{ JSON.stringify({\n  operation: JSON.parse($('AI Agent').first().json.output).operation,\n  sku: JSON.parse($('AI Agent').first().json.output).sku,\n  quantity: JSON.parse($('AI Agent').first().json.output).quantity,\n  source_text: $('Telegram Trigger').first().json.message.text\n}) }}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1648,
+        -160
+      ],
+      "id": "e06b2c76-d825-4a07-a0f6-eb17316ee386",
+      "name": "Stok Güncelle (Post)",
+      "credentials": {
+        "httpQueryAuth": {
+          "id": "qJk5XSIVlGYgotNv",
+          "name": "Query Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').first().json.message.chat.id }}",
+        "text": "={{ $json.success ? $json.product_name + ' stoğu güncellendi. Önce: ' + $json.before + ', Sonra: ' + $json.after + ' adet.' : 'İşlem yapılamadı: ' + ($json.error || 'Bilinmeyen hata') }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1872,
+        -160
+      ],
+      "id": "2c89b816-5c00-4f0d-892b-eb93518a858c",
+      "name": "Send a text message1",
+      "webhookId": "061275e5-4b50-4e81-9920-b2d7b9179345",
+      "credentials": {
+        "telegramApi": {
+          "id": "PdHZiz6WocFge4yT",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 4
+          },
+          "conditions": [
+            {
+              "id": "a1baf711-b771-4ed3-90ac-5670958a54ca",
+              "leftValue": "={{ $json.message.from.id.toString() }}",
+              "rightValue": "YOUR_TELEGRAM_USER_ID",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.4,
+      "position": [
+        224,
+        0
+      ],
+      "id": "dc8418d1-f32c-427b-b1a6-a8e9629bb172",
+      "name": "If1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a text message": {
+      "main": [
+        []
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Stok Güncelle (Post)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stok Güncelle (Post)": {
+      "main": [
+        [
+          {
+            "node": "Send a text message1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "50176658-d477-4c25-9f6d-0b5ca014f055",
+  "meta": {
+    "templateCredsSetupCompleted": true
+  
+  },
+  "nodeGroups": [],
+  "id": "fhNoZHfOsOVLsttA",
+  "tags": []
+}
